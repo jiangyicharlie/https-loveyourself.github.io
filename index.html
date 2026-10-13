@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>你和你推/你担的羁绊</title>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: "Noto Serif SC", "思源宋体", serif;
+            background: linear-gradient(180deg, #0D0A1F 0%, #1A1338 50%, #241850 100%);
+            color: #E8E4FF;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* 星尘背景 */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .star {
+            position: absolute;
+            background: #E8E4FF;
+            border-radius: 50%;
+            animation: twinkle 3s infinite ease-in-out;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* 通用页面容器 */
+        .page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            min-height: 100vh;
+            padding: 40px 24px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            animation: fadeIn 0.6s ease;
+        }
+        .page.active {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 入场动画 */
+        #intro-page {
+            background: #0D0A1F;
+            z-index: 100;
+        }
+        .intro-light {
+            width: 8px;
+            height: 8px;
+            background: #E8E4FF;
+            border-radius: 50%;
+            box-shadow: 0 0 20px #7C5CFF;
+            animation: lightBurst 4s forwards;
+            margin-bottom: 30px;
+        }
+        @keyframes lightBurst {
+            0% { transform: scale(0.5); opacity: 0.5; }
+            25% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(15); opacity: 0.8; }
+            75% { transform: scale(25); opacity: 0.4; }
+            100% { transform: scale(30); opacity: 0; }
+        }
+        .intro-prism {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border: 1px solid rgba(124, 92, 255, 0.6);
+            transform: rotate(45deg);
+            opacity: 0;
+            animation: prismShow 4s forwards;
+            animation-delay: 1.2s;
+        }
+        @keyframes prismShow {
+            0% { opacity: 0; transform: rotate(45deg) scale(0.5); }
+            50% { opacity: 1; transform: rotate(45deg) scale(1); }
+            100% { opacity: 0; transform: rotate(45deg) scale(1.2); }
+        }
+        .intro-title {
+            font-size: 24px;
+            letter-spacing: 4px;
+            opacity: 0;
+            animation: titleShow 4s forwards;
+            animation-delay: 2.5s;
+            text-align: center;
+            background: linear-gradient(90deg, #7C5CFF, #E8E4FF, #8FA3FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        @keyframes titleShow {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .skip-btn {
+            position: absolute;
+            bottom: 50px;
+            right: 30px;
+            font-size: 14px;
+            color: rgba(232, 228, 255, 0.6);
+            cursor: pointer;
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+            animation-delay: 1s;
+            z-index: 999;
+        }
+
+        /* 首页 */
+        .main-title {
+            font-size: 28px;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            text-align: center;
+            background: linear-gradient(90deg, #7C5CFF, #E8E4FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .intro-text {
+            font-size: 15px;
+            line-height: 1.8;
+            color: rgba(232, 228, 255, 0.85);
+            text-align: center;
+            margin-bottom: 40px;
+            max-width: 500px;
+        }
+        .primary-btn {
+            padding: 14px 48px;
+            background: linear-gradient(90deg, #7C5CFF, #8FA3FF);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            font-size: 16px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(124, 92, 255, 0.4);
+            transition: transform 0.2s;
+        }
+        .primary-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* 答题页 */
+        .progress-bar {
+            width: 100%;
+            max-width: 500px;
+            height: 4px;
+            background: rgba(232, 228, 255, 0.1);
+            border-radius: 2px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #7C5CFF, #8FA3FF);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .question-text {
+            font-size: 18px;
+            line-height: 1.6;
+            text-align: center;
+            margin-bottom: 30px;
+            max-width: 500px;
+        }
+        .options {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .option-item {
+            padding: 16px 20px;
+            background: rgba(232, 228, 255, 0.08);
+            border: 1px solid rgba(124, 92, 255, 0.3);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+        .option-item:active {
+            background: rgba(124, 92, 255, 0.2);
+            transform: scale(0.98);
+        }
+
+        /* 加载页 */
+        .loading-text {
+            font-size: 16px;
+            letter-spacing: 2px;
+            color: rgba(232, 228, 255, 0.8);
+            margin-top: 20px;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 2px solid rgba(124, 92, 255, 0.2);
+            border-top-color: #7C5CFF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 结果页 */
+        #result-card {
+            width: 100%;
+            max-width: 500px;
+        }
+        .result-title {
+            font-size: 26px;
+            text-align: center;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #7C5CFF, #E8E4FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .result-tags {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .tag {
+            padding: 4px 12px;
+            background: rgba(124, 92, 255, 0.15);
+            border-radius: 20px;
+            font-size: 12px;
+            color: #B8AFFF;
+        }
+        .radar-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+        #radarCanvas {
+            width: 280px;
+            height: 280px;
+        }
+        .result-section {
+            margin-bottom: 16px;
+        }
+        .result-section h4 {
+            font-size: 15px;
+            color: #B8AFFF;
+            margin-bottom: 6px;
+        }
+        .result-section p {
+            font-size: 14px;
+            line-height: 1.7;
+            color: rgba(232, 228, 255, 0.9);
+        }
+        .result-summary {
+            text-align: center;
+            font-size: 15px;
+            color: #E8E4FF;
+            margin-top: 20px;
+            font-style: italic;
+            letter-spacing: 1px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+            width: 100%;
+            max-width: 500px;
+        }
+        .action-buttons .primary-btn {
+            flex: 1;
+            padding: 12px;
+            font-size: 14px;
+        }
+        .secondary-btn {
+            flex: 1;
+            padding: 12px;
+            background: rgba(232, 228, 255, 0.1);
+            border: 1px solid rgba(124, 92, 255, 0.4);
+            border-radius: 30px;
+            color: #E8E4FF;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        /* 音效开关 */
+        .sound-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 200;
+            width: 36px;
+            height: 36px;
+            background: rgba(232, 228, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        /* 彩蛋特效 */
+        .egg-result .result-title {
+            animation: glow 2s infinite alternate;
+        }
+        @keyframes glow {
+            from { text-shadow: 0 0 10px rgba(124, 92, 255, 0.5); }
+            to { text-shadow: 0 0 25px rgba(232, 228, 255, 0.8); }
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 375px) {
+            .main-title { font-size: 24px; }
+            .question-text { font-size: 16px; }
+            #radarCanvas { width: 240px; height: 240px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 星尘背景 -->
+    <div class="stars" id="stars"></div>
+
+    <!-- 音效开关 -->
+    <div class="sound-toggle" id="soundToggle">🔇</div>
+
+    <!-- 入场动画页 -->
+    <div class="page active" id="intro-page">
+        <div class="intro-light"></div>
+        <div class="intro-prism"></div>
+        <div class="intro-title">你和你推/你担的羁绊</div>
+        <div class="skip-btn" id="skipBtn">跳过 ></div>
+    </div>
+
+    <!-- 首页 -->
+    <div class="page" id="home-page">
+        <h1 class="main-title">你和你推/你担的羁绊</h1>
+        <p class="intro-text">
+            你有没有好奇，你和你的推/你担之间，究竟是什么样的羁绊？<br>
+            这份羁绊跨越山海与次元，藏在每一次心动、每一次为他投入情绪的瞬间里。<br>
+            30道日常选择题，解锁你们独有的联结模式，还有稀有隐藏彩蛋等你触发。
+        </p>
+        <button class="primary-btn" id="startBtn">开始测试</button>
+    </div>
+
+    <!-- 答题页 -->
+    <div class="page" id="quiz-page">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="question-text" id="questionText"></div>
+        <div class="options" id="optionsContainer"></div>
+    </div>
+
+    <!-- 加载页 -->
+    <div class="page" id="loading-page">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">正在测算你们跨越次元的羁绊……</div>
+    </div>
+
+    <!-- 结果页 -->
+    <div class="page" id="result-page">
+        <div id="result-card">
+            <div class="result-title" id="resultName"></div>
+            <div class="result-tags" id="resultTags"></div>
+            <div class="radar-container">
+                <canvas id="radarCanvas" width="560" height="560"></canvas>
+            </div>
+            <div class="result-section">
+                <h4>▫ 评语</h4>
+                <p id="resultComment"></p>
+            </div>
+            <div class="result-section">
+                <h4>▫ 详细分析</h4>
+                <p id="resultAnalysis"></p>
+            </div>
+            <div class="result-section">
+                <h4>▫ 成长建议</h4>
+                <p id="resultAdvice"></p>
+            </div>
+            <div class="result-summary" id="resultSummary"></div>
+        </div>
+        <div class="action-buttons">
+            <button class="secondary-btn" id="restartBtn">再测一次</button>
+            <button class="primary-btn" id="saveBtn">保存截图</button>
+        </div>
+    </div>
+
+    <script>
+        // ========== Web Audio 音频引擎 ==========
+        let audioCtx = null;
+        let bgmOsc1, bgmOsc2, bgmGain;
+        let soundEnabled = false;
+        let bgmPlaying = false;
+
+        // 初始化AudioContext（必须用户点击后调用）
+        function initAudio() {
+            if(audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        // 水晶点击音效
+        function playClickSound() {
+            if(!soundEnabled || !audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1100, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1600, audioCtx.currentTime + 0.12);
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.28, audioCtx.currentTime + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.28);
+        }
+
+        // 循环BGM，轻柔氛围垫音
+        function startBGM() {
+            if(!audioCtx || bgmPlaying) return;
+            bgmPlaying = true;
+            bgmGain = audioCtx.createGain();
+            bgmGain.gain.value = 0.22;
+            bgmGain.connect(audioCtx.destination);
+
+            const noteList = [220, 246.94, 261.63, 293.66, 329.63, 293.66, 261.63, 246.94];
+            let noteIndex = 0;
+            function playNote(){
+                if(!bgmPlaying || !audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const osc2 = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                osc.type = 'sine';
+                osc2.type = 'triangle';
+                osc.frequency.value = noteList[noteIndex];
+                osc2.frequency.value = noteList[noteIndex]/2;
+                g.gain.setValueAtTime(0, audioCtx.currentTime);
+                g.gain.linearRampToValueAtTime(0.14, audioCtx.currentTime+0.05);
+                g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2.4);
+                osc.connect(g);
+                osc2.connect(g);
+                g.connect(bgmGain);
+                osc.start(); osc2.start();
+                osc.stop(audioCtx.currentTime + 2.4);
+                osc2.stop(audioCtx.currentTime + 2.4);
+                noteIndex = (noteIndex + 1) % noteList.length;
+                setTimeout(playNote, 2400);
+            }
+            playNote();
+        }
+        function stopBGM(){
+            bgmPlaying = false;
+        }
+
+        // ========== 配置数据 ==========
+        const dimensions = ['羁绊浓度', '陪伴坚守', '成长共鸣', '松弛自由度', '灵魂同频', '光点投射'];
+        
+        const questions = [
+            { question: "刷到你担物料，你的第一反应？", dimension: 0, options: ["反复循环，沉浸很久", "快速看完，存图打卡", "浅浅扫一眼，随缘观看", "只挑高光片段看"] },
+            { question: "当你担被恶意抹黑，你会？", dimension: 3, options: ["心里很难受，情绪低落", "冷静整理观点理性反驳", "无视黑评，不消耗自己", "和同担好友吐槽发泄"] },
+            { question: "你存的大量你担图片，主要用来？", dimension: 0, options: ["手机壁纸、头像，日常看见就开心", "收藏整理，做相册/手账", "偶尔翻出来回顾", "只存特别神图，不多囤"] },
+            { question: "你更偏向哪种喜欢的状态？", dimension: 4, options: ["情绪紧紧跟随他的起伏", "默默陪伴，长久守候", "以他为动力过好自己生活", "轻松吃瓜，快乐欣赏颜值"] },
+            { question: "同担和你对角色/偶像理解不一样，你会？", dimension: 3, options: ["努力沟通，希望达成共识", "尊重差异，保留自己想法", "不争论，避开这类话题", "觉得有趣，听对方想法"] },
+            { question: "看到别人夸你的推，你内心？", dimension: 5, options: ["超级激动，疯狂认同", "淡淡的开心，会心一笑", "欣慰，果然大家能看见闪光点", "习惯了，早已见怪不怪"] },
+            { question: "如果很久没有新物料，你的感受？", dimension: 1, options: ["空虚，疯狂等待更新", "偶尔想念，静待物料", "照常生活，想起来再看看", "无所谓，有就看没有就算"] },
+            { question: "你会为你担产出内容（修图/写文/剪辑）吗？", dimension: 0, options: ["经常产出，乐在其中", "心血来潮偶尔创作", "只会转发别人优质产出", "几乎不做任何产出"] },
+            { question: "你会给自己和你担脑补小故事吗？", dimension: 4, options: ["经常脑补完整剧情", "偶尔脑海闪过片段", "很少，更愿意看官方故事", "完全不会脑补"] },
+            { question: "当你担做出出乎你意料的选择，你会？", dimension: 4, options: ["短暂失落，但依然接纳", "重新理解，调整自己认知", "尊重，他自有他的道路", "觉得新鲜，增加魅力感"] },
+            { question: "你的喜欢，更看重？", dimension: 5, options: ["情绪共鸣，心灵契合", "长久陪伴的安稳感", "他带给你的成长力量", "欣赏他耀眼的闪光点"] },
+            { question: "和同担聊天，你一般？", dimension: 0, options: ["高频分享，无话不谈", "固定好友小圈子交流", "潜水，安静看大家讨论", "很少和别人聊你的推"] },
+            { question: "你是否会因为喜欢他，去尝试新事物？", dimension: 2, options: ["很多事情都是因为他开始尝试", "偶尔会受到鼓舞去行动", "仅仅作为精神鼓励", "不会改变原本生活节奏"] },
+            { question: "看到你担的旧物料，你的心情？", dimension: 1, options: ["满满的回忆，感触很深", "温柔怀念，静静观看", "客观看待，看他一路变化", "当做普通物料观看"] },
+            { question: "如果有机会，你最想对他说？", dimension: 4, options: ["我一直都在陪着你", "谢谢你，照亮我的日子", "愿你永远顺遂自由", "你真的闪闪发光"] },
+            { question: "你会不会反复回看同一个喜欢的片段？", dimension: 0, options: ["无限循环，百看不厌", "隔一段时间就重看", "看过一次就足够", "很少重复回看"] },
+            { question: "面对其他对家，你的心态？", dimension: 3, options: ["尽量避开，不想看见", "保持距离，互不打扰", "尊重他人喜好", "单纯吃瓜，无感"] },
+            { question: "喜欢他这件事，对你来说更像？", dimension: 2, options: ["一场热烈奔赴的爱恋", "长久不变的约定陪伴", "向前奔跑的精神灯塔", "闲暇时的快乐消遣"] },
+            { question: "你更容易被他哪一点打动？", dimension: 5, options: ["细腻共情的性格", "坚韧不变的初心", "强大独立的内核", "亮眼的外在魅力"] },
+            { question: "生活很忙压力大的时候，你会？", dimension: 2, options: ["点开他的物料治愈情绪", "想到他就获得力量", "将他当做精神寄托", "有空才会看相关内容"] },
+            { question: "你如何看待喜欢的期限？", dimension: 1, options: ["希望能一直喜欢很久很久", "顺其自然，珍惜当下", "这段经历本身就很珍贵", "随缘，未来不好预判"] },
+            { question: "你会收集他周边/谷子吗？", dimension: 0, options: ["遇到喜欢的就入手收藏", "少量购入，挑选最喜欢的", "云欣赏，不收集实物", "几乎不关注周边"] },
+            { question: "看到你担取得新成就，你的感受？", dimension: 2, options: ["热泪盈眶，无比感动", "由衷为他感到骄傲", "受到鼓舞，激励自己", "觉得理所应当，本来就优秀"] },
+            { question: "如果别人不理解你为什么喜欢他，你？", dimension: 3, options: ["不想辩解，懂的自然懂", "简单介绍他的闪光点", "不在意他人看法", "当个趣事一笑而过"] },
+            { question: "你想象里，你们之间距离是？", dimension: 4, options: ["灵魂贴近，跨越次元/山海", "安静守望，不远不近", "他在前方，作为榜样指引", "远远欣赏，保持距离"] },
+            { question: "你会不会因为喜欢他，反思自身？", dimension: 2, options: ["经常，很多想法被他影响", "偶尔会对照自省", "欣赏但不会代入自我", "基本不会联想到自己"] },
+            { question: "当你短暂对他热情减退，你会？", dimension: 3, options: ["焦虑，害怕不再喜欢", "坦然，情绪本就有起伏", "休息一段时间再回来", "顺其自然，不强求热爱"] },
+            { question: "你分享他的内容到社交平台频率？", dimension: 0, options: ["经常分享日常心动瞬间", "遇到神图/名场面才分享", "仅私密收藏不对外发", "几乎不发布相关内容"] },
+            { question: "你心中这份羁绊的底色？", dimension: 1, options: ["热烈赤诚", "温柔绵长", "互相成长", "轻松愉快"] },
+            { question: "回望入坑的那一刻，你的想法？", dimension: 5, options: ["幸好，遇见了他", "很珍贵的一段相遇", "感谢那时的自己选择喜欢", "一次美好的偶然邂逅"] }
+        ];
+
+        const results = {
+            main: [
+                {
+                    name: "炽热奔赴型",
+                    tags: ["#热烈赤诚", "#灵魂同频", "#双向心动"],
+                    comment: "你和他是一场义无反顾的心动奔赴，情绪紧紧相连，你能捕捉到他所有温柔与闪光。",
+                    analysis: "高浓度投入情绪，易被他牵动喜怒哀乐，享受灵魂共鸣的热烈羁绊；愿意产出、收集、反复回味所有美好瞬间，热爱鲜活滚烫，但情绪波动时容易内耗。",
+                    advice: "热烈的喜欢很珍贵，记得留一部分情绪给自己，你的生活同样闪闪发光。",
+                    summary: "山海相隔，也挡不住你奔向他的心动。"
+                },
+                {
+                    name: "静候守望型",
+                    tags: ["#长久陪伴", "#温柔缄默", "#细水长流"],
+                    comment: "你们之间是安静绵长的守护羁绊，不追求轰轰烈烈，偏爱细水长流。",
+                    analysis: "热爱温和稳定，习惯默默关注、静静守候，不疯狂刷屏却长久记住他所有故事；很少被外界节奏裹挟，是稳定长久的同担。",
+                    advice: "温柔陪伴本身就是力量，不必强迫自己跟风产出或打卡，你舒服的节奏就是最好的。",
+                    summary: "岁岁年年，安静守望，这份喜欢细水长流。"
+                },
+                {
+                    name: "灯塔同行型",
+                    tags: ["#榜样力量", "#自我成长", "#并肩前行"],
+                    comment: "你们是并肩同行的羁绊，他是照亮前路的灯塔，你借这份喜欢成为更好的自己。",
+                    analysis: "欣赏他坚韧的特质，喜欢核心在于这份热爱带来的正向力量；以他为动力督促自己好好生活、提升自我，分得清现实与热爱，不沉溺情绪。",
+                    advice: "继续保持双向赋能，让喜欢成为动力而非枷锁，你们各自在自己的世界发光。",
+                    summary: "他在前方发光，你在身后奔赴更好的自己。"
+                },
+                {
+                    name: "轻风随缘型",
+                    tags: ["#松弛感", "#随缘欣赏", "#快乐吃瓜"],
+                    comment: "你和他的羁绊像一阵轻风，来去自如，喜欢但从不内耗。",
+                    analysis: "以轻松姿态看待这份喜欢，有就看、没有就算，不追逐产出、不参与争论；欣赏他闪耀的部分，也绝不把他变成情绪负担，追星对你而言是纯粹快乐。",
+                    advice: "这种松弛感很难得，继续保持\"喜欢但不绑架\"的心态，享受当下就好。",
+                    summary: "风过无痕，但每次见你都满心欢喜。"
+                },
+                {
+                    name: "镜中知己型",
+                    tags: ["#精神契合", "#默契共鸣", "#灵魂照见"],
+                    comment: "你在他身上看见了另一个自己，这份羁绊是灵魂层面的相互照见。",
+                    analysis: "你与他在性格、价值观、情绪上高度同频，能读懂他的选择与挣扎，共情力极强；你喜欢的不只是舞台上的他，更是那份懂得与映照，常在他身上反思自我。",
+                    advice: "这份照见很珍贵，记得把对他的理解化为对自己的温柔，先好好爱自己。",
+                    summary: "世人看他是光，你看他是镜子里的自己。"
+                },
+                {
+                    name: "追光者型",
+                    tags: ["#慕强", "#欣赏崇拜", "#专注闪光"],
+                    comment: "你是坚定的追光者，被他独一无二的闪光点深深吸引，远远欣赏也不失为一种幸福。",
+                    analysis: "你的喜欢更多源于对他才华、魅力与成就的专注欣赏，保持适当的距离感；享受被他点亮的感觉，却不执着于\"拥有\"，理智而清醒，是高质量的慕强式喜欢。",
+                    advice: "追光的同时，也别忘记自己也能成为光源，试着让他的光芒照进你的成长。",
+                    summary: "我追着光而来，也终将成为自己的光。"
+                }
+            ],
+            eggs: [
+                {
+                    name: "次元回响 · 宿命羁绊",
+                    tags: ["#宿命感", "#跨次元回响", "#命中相逢"],
+                    comment: "这是万中无一的宿命羁绊！你们的相遇像命中注定的回响，跨越距离与次元，一眼沦陷。",
+                    analysis: "你与他联结带极强宿命感，初见即有强烈熟悉感；羁绊浓度、陪伴坚守、灵魂同频三项同高，松弛度适中。这是灵魂层面的相遇，极其难得。",
+                    advice: "珍惜这份独一无二的缘分，也记得经营好自己的生活——宿命相逢是馈赠，好好生活才是底色。",
+                    summary: "跨越次元人海相逢，这场相遇本就是奇迹。",
+                    condition: (scores) => scores[0] >= 85 && scores[1] >= 85 && scores[4] >= 80 && scores[3] >= 60
+                },
+                {
+                    name: "雾中过客型",
+                    tags: ["#游离感", "#若即若离", "#神秘路人"],
+                    comment: "你游离在饭圈边缘，喜欢过、淡忘过，像雾中过客，若即若离。",
+                    analysis: "你对追星的态度带着一种\"间歇性上头、阶段性失联\"的游离感，松弛度极高而坚守度偏低，情绪来去自由，像一场无需负责的邂逅。",
+                    advice: "这种自由也很珍贵，无论上头还是淡去都顺其自然，开心就好。",
+                    summary: "缘起缘落，都是路过你世界的一阵风。",
+                    condition: (scores) => scores[3] >= 90 && scores[1] <= 40 && scores[0] <= 50
+                }
+            ]
+        };
+
+        // ========== 状态变量 ==========
+        let currentQuestion = 0;
+        let scores = [0, 0, 0, 0, 0, 0];
+        const soundToggle = document.getElementById('soundToggle');
+        const skipBtn = document.getElementById('skipBtn');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        let autoSkipTimer;
+
+        // ========== 绑定点击事件 ==========
+        soundToggle.addEventListener('click', toggleSound);
+        skipBtn.addEventListener('click', skipIntro);
+        startBtn.addEventListener('click', startQuiz);
+        restartBtn.addEventListener('click', restartQuiz);
+        saveBtn.addEventListener('click', saveResult);
+
+        // ========== 初始化 ==========
+        function init() {
+            createStars();
+            // 4秒自动进首页
+            autoSkipTimer = setTimeout(() => {
+                skipIntro();
+            }, 4000);
+        }
+
+        // 生成星尘背景
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            for (let i = 0; i < 60; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = (Math.random() * 2 + 1) + 'px';
+                star.style.height = star.style.width;
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // ========== 页面切换 ==========
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        function skipIntro() {
+            clearTimeout(autoSkipTimer);
+            showPage('home-page');
+        }
+
+        // ========== 音效开关逻辑 ==========
+        function toggleSound() {
+            initAudio(); // 用户点击，解锁AudioContext
+            soundEnabled = !soundEnabled;
+            soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
+            if (soundEnabled) {
+                startBGM();
+            } else {
+                stopBGM();
+            }
+            playClickSound();
+        }
+
+        function playClick() {
+            playClickSound();
+        }
+
+        // ========== 答题逻辑 ==========
+        function startQuiz() {
+            currentQuestion = 0;
+            scores = [0, 0, 0, 0, 0, 0];
+            showPage('quiz-page');
+            renderQuestion();
+            initAudio();
+            if(soundEnabled){
+                startBGM();
+            }
+            playClick();
+        }
+
+        function renderQuestion() {
+            const q = questions[currentQuestion];
+            document.getElementById('questionText').textContent = q.question;
+            document.getElementById('progressFill').style.width = ((currentQuestion + 1) / questions.length * 100) + '%';
+            
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+            
+            q.options.forEach((opt, index) => {
+                const div = document.createElement('div');
+                div.className = 'option-item';
+                div.textContent = opt;
+                div.onclick = () => selectOption(4 - index, q.dimension);
+                optionsContainer.appendChild(div);
+            });
+        }
+
+        function selectOption(score, dimension) {
+            playClick();
+            scores[dimension] += score;
+            currentQuestion++;
+            
+            if (currentQuestion < questions.length) {
+                setTimeout(renderQuestion, 200);
+            } else {
+                showLoading();
+            }
+        }
+
+        // ========== 加载与计算 ==========
+        function showLoading() {
+            showPage('loading-page');
+            setTimeout(calculateResult, 1500);
+        }
+
+        function calculateResult() {
+            // 标准化为0-100分
+            const maxSingleScore = 4;
+            // 统计每个维度题目数量
+            let dimCount = [0,0,0,0,0,0];
+            questions.forEach(q=> dimCount[q.dimension]++);
+            const standardized = [];
+            for(let d=0;d<6;d++){
+                const maxTotal = dimCount[d] * maxSingleScore;
+                standardized.push( Math.round( (scores[d]/maxTotal)*100 ) );
+            }
+            
+            // 校验彩蛋
+            let finalResult = null;
+            let isEgg = false;
+            
+            // 彩蛋1优先级更高
+            if (results.eggs[0].condition(standardized)) {
+                finalResult = results.eggs[0];
+                isEgg = true;
+            } else if (results.eggs[1].condition(standardized)) {
+                finalResult = results.eggs[1];
+                isEgg = true;
+            } else {
+                // 主结果判定：找最高分维度
+                let maxIndex = 0;
+                let maxVal = standardized[0];
+                for (let i = 1; i < standardized.length; i++) {
+                    if (standardized[i] > maxVal) {
+                        maxVal = standardized[i];
+                        maxIndex = i;
+                    }
+                }
+                finalResult = results.main[maxIndex];
+            }
+
+            renderResult(finalResult, standardized, isEgg);
+        }
+
+        // ========== 渲染结果 ==========
+        function renderResult(result, scores, isEgg) {
+            document.getElementById('resultName').textContent = result.name;
+            
+            const tagsContainer = document.getElementById('resultTags');
+            tagsContainer.innerHTML = '';
+            result.tags.forEach(tag => {
+                const span = document.createElement('span');
+                span.className = 'tag';
+                span.textContent = tag;
+                tagsContainer.appendChild(span);
+            });
+
+            document.getElementById('resultComment').textContent = result.comment;
+            document.getElementById('resultAnalysis').textContent = result.analysis;
+            document.getElementById('resultAdvice').textContent = result.advice;
+            document.getElementById('resultSummary').textContent = result.summary;
+
+            // 彩蛋特效
+            const resultCard = document.getElementById('result-card');
+            if (isEgg) {
+                resultCard.classList.add('egg-result');
+            } else {
+                resultCard.classList.remove('egg-result');
+            }
+
+            // 绘制雷达图
+            drawRadar(scores);
+            showPage('result-page');
+        }
+
+        // ========== 六边形雷达图绘制 ==========
+        function drawRadar(scores) {
+            const canvas = document.getElementById('radarCanvas');
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 200;
+            const sides = 6;
+            const angleStep = (Math.PI * 2) / sides;
+            const startAngle = -Math.PI / 2;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制背景网格
+            for (let level = 1; level <= 5; level++) {
+                const r = radius * (level / 5);
+                ctx.beginPath();
+                for (let i = 0; i < sides; i++) {
+                    const angle = startAngle + i * angleStep;
+                    const x = centerX + r * Math.cos(angle);
+                    const y = centerY + r * Math.sin(angle);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.strokeStyle = 'rgba(124, 92, 255, 0.2)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+            // 轴线
+            for(let i=0;i<sides;i++){
+                const angle = startAngle + i*angleStep;
+                ctx.beginPath();
+                ctx.moveTo(centerX,centerY);
+                ctx.lineTo(centerX + radius*Math.cos(angle), centerY + radius*Math.sin(angle));
+                ctx.strokeStyle = 'rgba(124,92,255,0.15)';
+                ctx.stroke();
+            }
+            // 数据多边形
+            ctx.beginPath();
+            for(let i=0;i<sides;i++){
+                const angle = startAngle + i*angleStep;
+                const val = scores[i]/100;
+                const r = radius * val;
+                const x = centerX + r * Math.cos(angle);
+                const y = centerY + r * Math.sin(angle);
+                if(i===0) ctx.moveTo(x,y);
+                else ctx.lineTo(x,y);
+            }
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(124,92,255,0.25)';
+            ctx.fill();
+            ctx.strokeStyle = '#7C5CFF';
+            ctx.lineWidth=2;
+            ctx.stroke();
+            // 顶点圆点
+            for(let i=0;i<sides;i++){
+                const angle = startAngle + i*angleStep;
+                const val = scores[i]/100;
+                const r = radius * val;
+                const x = centerX + r * Math.cos(angle);
+                const y = centerY + r * Math.sin(angle);
+                ctx.beginPath();
+                ctx.arc(x,y,4,0,Math.PI*2);
+                ctx.fillStyle="#E8E4FF";
+                ctx.fill();
+            }
+            // 文字标签
+            ctx.fillStyle="#E8E4FF";
+            ctx.font="14px Noto Serif SC";
+            for(let i=0;i<sides;i++){
+                const angle = startAngle + i*angleStep;
+                const r = radius +20;
+                const x = centerX + r * Math.cos(angle);
+                const y = centerY + r * Math.sin(angle);
+                ctx.textAlign="center";
+                ctx.textBaseline="middle";
+                ctx.fillText(dimensions[i],x,y);
+            }
+        }
+
+        // 保存截图
+        function saveResult(){
+            const cardDom = document.getElementById("result-card");
+            html2canvas(cardDom,{
+                backgroundColor:null,
+                scale: window.devicePixelRatio
+            }).then(canvas=>{
+                const a = document.createElement("a");
+                a.href = canvas.toDataURL("image/png");
+                a.download = "羁绊测试结果.png";
+                a.click();
+            })
+        }
+
+        // 重新测试
+        function restartQuiz(){
+            showPage("home-page");
+        }
+
+        // 页面加载完成后初始化
+        window.onload = init;
+    </script>
+</body>
+</html>
